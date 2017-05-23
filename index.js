@@ -14,6 +14,10 @@ export default class Carousel extends Component {
     static propTypes = {
         ...ScrollView.propTypes,
         /**
+        * Enable/disable Carousel
+        */
+        enable: PropTypes.bool.isRequired,
+        /**
         * Width in pixels of your elements
         */
         itemWidth: PropTypes.number.isRequired,
@@ -117,6 +121,7 @@ export default class Carousel extends Component {
 
     static defaultProps = {
         activeSlideOffset: 25,
+        enable: true,
         animationFunc: 'timing',
         animationOptions: {
             easing: Easing.elastic(1)
@@ -279,29 +284,32 @@ export default class Carousel extends Component {
     }
 
     _onScroll (event) {
-        const { animationFunc, animationOptions, enableMomentum, onScrollViewScroll } = this.props;
+        const { animationFunc, animationOptions, enableMomentum, onScrollViewScroll, enable } = this.props;
         const { activeItem } = this.state;
         const newActiveItem = this._getActiveItem(this._getCenterX(event));
-
-        if (enableMomentum) {
+        
+        if (enable){
+            if (enableMomentum) {
             clearTimeout(this._snapNoMomentumTimeout);
-        }
+            }
 
-        if (onScrollViewScroll) {
-            onScrollViewScroll(event);
-        }
+            if (onScrollViewScroll) {
+                onScrollViewScroll(event);
+            }
 
-        if (activeItem !== newActiveItem) {
-            Animated[animationFunc](
-                this.state.interpolators[activeItem],
-                { ...animationOptions, toValue: 0 }
-            ).start();
-            this.setState({ activeItem: newActiveItem });
-            Animated[animationFunc](
-                this.state.interpolators[newActiveItem],
-                { ...animationOptions, toValue: 1 }
-            ).start();
+            if (activeItem !== newActiveItem) {
+                Animated[animationFunc](
+                    this.state.interpolators[activeItem],
+                    { ...animationOptions, toValue: 0 }
+                ).start();
+                this.setState({ activeItem: newActiveItem });
+                Animated[animationFunc](
+                    this.state.interpolators[newActiveItem],
+                    { ...animationOptions, toValue: 1 }
+                ).start();
+            }   
         }
+        
     }
 
     _onTouchStart () {
@@ -311,38 +319,44 @@ export default class Carousel extends Component {
     }
 
     _onScrollBegin (event) {
-        this._scrollStartX = event.nativeEvent.contentOffset.x;
-        this._scrollStartActive = this.state.activeItem;
-        this._ignoreNextMomentum = false;
+        const { enable } = this.props;
+        if (enable){
+            this._scrollStartX = event.nativeEvent.contentOffset.x;
+            this._scrollStartActive = this.state.activeItem;
+            this._ignoreNextMomentum = false;
+        }
     }
 
     _onScrollEnd (event) {
-        const { autoplayDelay, autoplay } = this.props;
-
-        if (this._ignoreNextMomentum) {
+        const { autoplayDelay, autoplay, enable } = this.props;
+         
+        if (enable){
+          if (this._ignoreNextMomentum) {
             // iOS fix
             this._ignoreNextMomentum = false;
             return;
-        }
-        this._scrollEndX = event.nativeEvent.contentOffset.x;
-        this._scrollEndActive = this.state.activeItem;
+            }
+            this._scrollEndX = event.nativeEvent.contentOffset.x;
+            this._scrollEndActive = this.state.activeItem;
 
-        const deltaX = this._scrollEndX - this._scrollStartX;
+            const deltaX = this._scrollEndX - this._scrollStartX;
 
-        if (this._snapEnabled) {
-            this._snapScroll(deltaX);
-        }
+            if (this._snapEnabled) {
+                this._snapScroll(deltaX);
+            }
 
-        if (autoplay) {
-            // Restart autoplay after a little while
-            // This could be done when releasing touch
-            // but the event is buggy on Android...
-            clearTimeout(this._enableAutoplayTimeout);
-            this._enableAutoplayTimeout =
-                setTimeout(() => {
-                    this.startAutoplay(true);
-                }, autoplayDelay + 200);
+            if (autoplay) {
+                // Restart autoplay after a little while
+                // This could be done when releasing touch
+                // but the event is buggy on Android...
+                clearTimeout(this._enableAutoplayTimeout);
+                this._enableAutoplayTimeout =
+                    setTimeout(() => {
+                        this.startAutoplay(true);
+                    }, autoplayDelay + 200);
+            }  
         }
+        
     }
 
     // Due to a bug, this event is only fired on iOS
